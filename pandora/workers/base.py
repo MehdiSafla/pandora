@@ -11,6 +11,9 @@ import traceback
 from logging import LoggerAdapter
 from typing import MutableMapping, Any, Iterator
 
+from os import environ, getenv
+from dotenv import load_dotenv
+
 from redis import ConnectionPool, Redis
 from redis.connection import UnixDomainSocketConnection
 from redis.exceptions import ResponseError, ConnectionError as RedisConnectionError
@@ -21,6 +24,7 @@ from ..report import Report
 from ..storage_client import Storage
 from ..task import Task
 
+load_dotenv()
 
 class WorkerLogAdapter(LoggerAdapter):  # type: ignore[type-arg]
     """
@@ -76,6 +80,13 @@ class BaseWorker(multiprocessing.Process):
                 if self.disabled:
                     self.logger.critical(f'General error, unable to initialize the workers for {module}.')
                     raise PandoraException(f'General error, unable to initialize the workers for {module}.')
+
+        self.logger.debug(f'Checking environment for {module} api key...')
+        if f"{module}_apikey" in environ:
+            self.logger.debug(f'Found api key.')
+            self.apikey = getenv(f'{module}_apikey')
+        else:
+            self.logger.debug(f"Couldn't find api key for {module}")
 
         self.storage = Storage()
 
